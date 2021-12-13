@@ -1,0 +1,1154 @@
+ders 1----------------------------------------------------------
+DDL - create,alter,drop,rename,truncate,flashback,purge,comment
+DML - select,insert,update,delete,merge = insert + delete + update;DCL - Grant,Revoke
+TCL- Commit,rollback,savepoint
+*DQL - select DDL den ayrilib DQL e salinmishdir. Data Query Language;
+-----------------------------------------------------------------
+Table Naming(adlandirma)
+simvollardan yalniz _,#,$ simvollari istifade oluna biler.
+reqem yalniz adin orta ve sonunda istifade oluna biler.
+-----------------------------------------------------------------
+number,varchar(4000byte),char(2000byte),nvarchar,nchar 	     *NVARCHAR precision u mutleg verilmelidir.ex.NAVRCHAR(50)
+date
+blob clob,nclob - daha boyuk hecmli text,shekil,gif,ve s.    *BLOB,CLOB lara PRIMARY KEY VE YA FOREIGN KEY vermek olmaz
+-----------------------------------------------------------------
+desc /tableName --- table in sxemine baxmaq ucun
+truncate - table in icini boshaldir.
+ctas = create table as select ... 
+where id = 3; where id in(1,2,3); not in (1,2,3)
+create table /TABLE /age number(2) DEFAULT /18 - teyin etmedikde default ozu yaradir.
+----------------------------------------------------------------
+1.users,roles
+2.public synonym
+3.table,view,sequence,private synoynm,user-defined type
+4.index
+5.constraint
+----------------------------------------------------------------
+Schema - usere aiddir, biz yaradiriq, biz isleyirik
+Non-Schema - oracle a aiddir.
+schema: table, constraints, index, view, sequence(ardicilliq),private synonym
+non-schema: user, role, public synonym;
+
+ders 2----------------------------------------------------------------
+CONSTRAINTS
+1.not null
+2.unique
+3.primary key
+4.check
+5.foreing key
+
+constraint /cns_name /foreign key (id) references /table_name(id);
+constraint /cns_name /primary key;
+constraint /cns_name /check (/salary between ~ and ~);
+
+--select * from user_constraints
+ALTER TABLE my_emp_table_tst RENAME CONSTRAINT /old_name TO /new_name
+
+ALTER TABLE /table_name modify (/id primary key);
+ALTER TABLE /table_name add primary key (id)
+**not null constrainti sonradan table a add ile elave olunmur amma modify ile olunur.
+ALTER TABLE /table_name DROP COLUMN (column_name); - column silmek.
+ALTER TABLE /table_name SET UNUSED COLUMN (column_name); - column unutmaq (hamisini etmek olmaz).
+ALTER TABLE /table_name DROP UNUSED COLUMN - unused olunmush columnlari silir.
+ALTER TABLE /table_name RENAME TO /new_name - table name deyishtirmek
+ALTER TABLE /table_name RENAME COLUMN /old_name TO /new_name --- Column Name deyishdirmek
+
+foreign key (~~) references ~~~(~~) ...  ON DELETE CASCADE - 2ci table dan melumat sildikde 
+1ciden de silir, ON DELETE SET NULL - 2 ciden silinen melumat 1 cide null kimi qalir. 
+
+**Bir table de yalniz 1 PRIMARY KEY olur, mehdudiyyet qoyulan yegane Constraint PRIMARY KEY dir.
+**Bir table de birden cox FOREIGN KEY ola biler.
+
+**blob,clob lara PRIMARY KEY VE YA FOREIGN KEY vermek olmaz.
+**TRUNCATE edende datalar silinir amma Constraintler yox.Constraint table in structurudur.
+**TRUNCATE TABLE /table_name CASCADE -- foreign key, primary key olan Constraintleri silir.
+**FOREIGN KEY olan table(dimension) i TRUNCATE etmek olmur. 
+**alter table /table_name read only --- table uzerinde emeliyyatlari dayandirir. yalniz select * olur(geri almaq olmur).
+**alter table /table_name read write --- yalniz insert etmek olur , update, drop olmur.
+**Constraint /cn_name PRIMARY KEY (id,code) kimi yazilis mumkundur.
+TRUNCATE - ddl emridir,Delete - dml emri. Truncate daha suretli isleyir. ve truncate auto commit edir,
+ama delete etmir. Yeni truncate den sonra rollback olmur.
+
+**********************
+In read-only mode, the following operations are permitted on the table:
+Select
+Management of indexes
+Management of Constraints
+Dropping and deallocation of unused columns
+Renaming and moving of the table
+Drop table
+
+The following operations are disabled on a table in read-only mode:
+DML on table (Insert, Update, Delete, Merge)
+Truncation of table
+Select for Update
+Adding, removing, renaming, dropping, or setting a column to unused
+Flashback on the table
+***********************
+ders 3--------------------------------------------------------------------------------------
+Sequence:
+
+nextval,currval;
+
+create sequence sc_name 
+increment by 5
+start with 1
+maxvalue 1000
+minvalue 1
+cycle nocycle
+cache 2   (max-min ) : abs(interval)
+order noorder;
+
+*cycle nedir - sequence maxvalue -a catdiqdan sonra dovr edib yeniden baslayir, bu yalnisdir.
+nocycle - sequence maxvalue -a catdiqda dayanir (error).
+cache = (max-min) : interval.
+order - ardicilliq duzenli artir 5-10-15. noorder - ededler qarishiq random yazilir 10-5-60-15.
+
+*Error olsa bele nextval artir, diger insertde ID novbetiden goturulur.
+--select /my_seq.currval from dual -- indi ki value ni gosterir.
+
+*Sequence yaradildiqdan sonra bir defe bele Nextval olunmayibsa bu zaman Currval hecne cixarmayacaq(error).
+*minvalue yazilmayibsa default olarag 1dir. 
+*Dovr edib bitdikden sonra yeniden baslayan sequence minvalue necedirse ondan baslayir, yoxdursa default 1 den.
+----------------------------------------------------------------
+Delete/Update:
+
+delete from /table_name ---- from and where OPTIONAL.
+update /tab_name set /salary = 200, /experience = 5 where ~~~;
+*Eger table in butun row lari silinirse bu DELETE dir, sadece bezi columnlari silinirse bu UPDATE-dir.
+*How to delete only 1 column data? / update set = null.
+
+*Rollback DML e aiddir, datalari geri qaytarir, Flashback ise DDL e aiddir, obyektleri qaytarir(table,column)
+**Eger commit olunubsa ondan evvelki savepointlere rollback etmek olmur.
+rollback work to -- work optional dir.
+------------------------------------------------------------------
+ORDER BY:
+
+select * from /tab_name order by /salary asc /or/ desc.
+**Eger hecne yoxdursa default olaraq asc dir. Null - hemde en boyukdur.Desc-de 1ci gelir.
+select /col_name1,/col_name2/col_name3 from /tab_name ORDER BY 2 --- yeni /col_name2 ye gore order by asc(default).
+2 colum a gore ORDER BY etmek olar. meselen: yuxaridaki kod + order by 2 asc, order by 3 desc.
+
+**Order by en sonda gelir.
+ALIAS - select /col_name as /yeniad from /tab_name order by /yeniad
+
+ders 4 ------------------------------------------------------------------------
+SELECT operators, in, not in , and, or, like
+!= , <>, ^=  - bu ishareler hamisi eynidir ve menasi ferqlidir demekdir.
+select * from /tab_name where /amount = 944;
+select * from /tab_name where /amount != 944;
+select * from /tab_name where /amount in (944,189,544);
+select * from /tab_name where /amount not in (944,189,544);
+select * from /tab_name where /amount = 944 and /position = 'IT';
+select * from /tab_name where /amount = 944  or /position = 'IT';
+select * from /tab_name where /name like 'An_r'; _ isaresi 1 simvol olmayan sozleri gosterir.
+select * from /tab_name where /pin_code like 'PC%'; % cox sayda simvol.
+
+Lower/Upper/initcap:
+select * from /tab_name where LOWER(/name) like 'an_r'; butun herfleri kicildir icinden axtarir.
+select * from /tab_name where UPPER(/pin_code) like 'PC%'; butun herfleri boyudur icinden axtarir.
+select Upper(/Name) from /tab_name --- adlari boyuk herfde qaytarir ve ya LOWER kicik.
+select initcap(/name) from /tab_name -- ilk herfi boyuk edir.
+
+is null/ is not null/ Between and :
+**Null olub olmayani axtarmag ucun = null YOX, is null yazilir. Meselen:
+select * from /tab_name where /amount IS NULL; ve ya IS NOT NULL.
+select * from /tab_name where /amount BETWEEN 111 AND 222; (111 ve 222 daxildir). >= , <=
+
+MUQAYISE OPERATORLARI:
+-6>-8;
+A < Z; her ikisi boyuk olduqda Z ye dogru artir. yeni Z boyukdur.
+Z < a; kicik herfler her zaman boyuk herflerden daha boyukdur.
+2 < 10;
+'2'>'10'; dirnaq icinde olduqda kicik reqem her zaman boyukdur.
+
+ders 5 ----------------------------------------------------------------------------
+rownum - table in id col u dur.
+rowid - table in gizli unique id col u dur.
+
+*TOP neçe se cixart dese rankdan istifade olunur.
+select rank() over (order by /col_name desc) as /new_col_name from /tab_name;
+dense_rank siraladiqda reqem ardicilligi ile siralayir.
+
+Col-a as ile yeni alias verdikde eyni kodda ondan where kimi istifade etmek olmur,
+bunun ucun yeni --select * from (hemin kodu) morterizede copy edib istifade ederek where /alias < 3; kimi yazmaq lazimdir.
+
+& - istifadesi: (substitution variable)*
+select * from /tab_name &optional_name; istifade ederek daha rahat search etmek olur.
+select &opt_name from table;
+&& - 1 defe teyin etdikden sonra yeniden run etdikde hemin deyeri auto qebul edir.
+
+**select * from v$version;
+
+Only/with ties:
+** select * from /tab_name fetch first /7 rows only;
+** select * from /tab_name fetch next /20 percent rows only;
+** Eger order by yoxdursa, only = with ties --------eyni sheydir.
+** Eger order by varsa, ONLY - yalniz deyilen qederini getirir, amma
+WITH TIES butun col u yoxlayib diger eyni olanlarida nezere alir. (RANK kimi);
+
+Offset:
+** select * from /tab_name offset 5 rows fetch first 8 rows only; yeni ilk 5 rowdan sonraki 8 row u getir.
+** Eger offset yazilmayibsa = 0 sayilir.
+        offset menfidirse = 0 sayilir.
+        offset = 0 sa, yene = 0 sayilir.
+	offset > umumi row sayindan boyukdurse onda hecne getirmir. no row return;
+
+**dublicat id leri gormek,silmek,ferqlendirmek ucun ROWID den istifade olunur.
+  select rowid from /tab_name;
+**distinct unique id leri gosterir.
+  select distinct from /tab_name;
+
+ders 6 ---------------------------------------------------------------
+FUNCTIONS:
+*built in - funksiyalar oracle hazir funksiyalari ve 
+*user defined -  funksiyalar user tertib etdiyi funksiyalar.
+
+* select SYSDATE from dual; - cari tarixi gosterir. 
+
+1)scalar /single row -       setir be setir colmun butun setrlere tetbiq olunan funksiyalar.
+2)aggregate / group   sum,avg,count,min,max --- yalniz 1 netice qaytaran funksiyalar.
+3)analytical   rank,dense_rank,lag,lead,row_number
+
+Function larin data tiplerine gore ishlemesi.
+1)date
+2)character
+3)number
+
+Functionlarin ishlenme yeri:
+1)selectin column hissesinde ve where hissesinde
+2)insertde
+3)update in set hissesinde ve where hissesinde
+4)delete in where hissesinde
+
+1) lower,upper,initcap :
+select Upper(/col_name) from /tab_name --- col daki butun herfleri boyuk edir.
+select Lover(/col_name) from /tab_name --- col daki butun herfleri kicik edir.
+select initcap(/col_name) from /tab_name --- col daki ilk herfleri boyuk edir.
+
+2) ||(or concat(a,b)) :
+select /name || surname || 'space' || age as /new_name from /tab_name;
+
+*Praktikada daha cox  || dan istifade edilir, cunki "concat" a nisbeten bunda daha cox column 
+ birleshdirmek olur,aralarina istediyin boshluq, soz yazmaq olur.
+
+3) length() - sozun uzunlugunu qaytarir.
+select length(/name) from /tab_name;
+
+4) lpad(), rpad() - (2 formasi var char i qaytarir.) :
+select lpad('char', n ) from /tab_name ---- char in N qeder simvolunu qaytarir,tam qaytardiqdan sonra qalanina SOLDAN boshluq artirir. 
+select lpad('char', n, 'm' ) from /tab_name ---- char in N qeder simvolunu qaytarir,tam qaytardiqdan sonra qalanina SOLDAN M artirir.
+
+select rpad('char', n ) from /tab_name ---- char in N qeder simvolunu qaytarir,tam qaytardiqdan sonra qalanina SAGDAN boshluq artirir. 
+select rpad('char', n, 'm' ) from /tab_name ---- char in N qeder simvolunu qaytarir,tam qaytardiqdan sonra qalanina SAGDAN M artirir.
+
+*kodlama ucun istifade olunur.
+
+5) instr() (3 formasi var, index qaytarir) :
+select instr('char','axtarilan simvol') from /tab_name;
+select instr('char','axtarilan simvol', n ) from /tab_name --- chardaki sozun simvolu N ci simvoldan sonra axtarmaga bashlayir.
+select instr('char','axtarilan simvol', n, m ) from /tab_name -chardaki sozun simvolu N ci simvoldan axtarmaga bashlayir,ve 
+  tapilan simvollardan M ci nin indexini gosterir.
+
+*cumle,kod icerisinde hansisa herfi,simvolun indexini tapmaq ucun istifade olunur.
+
+6) substr() (2 formasi var,char qaytarir) :
+select substr('char', n ) from /tab_name    ----  char in N daxil olmaqla,ondan sonraki  hissesini qaytarir.
+select substr('char', n, m ) from /tab_name ----  char in N daxil olmaqla,ondan sonraki M qederini qaytarir.
+
+*cumle,kod icerisinde hansisa herfden, simvoldan sonraki hisseni goturmek ucun istifade olunur.
+
+7) ltrim(), rtrim() (2 formasi var,char qaytarir) :
+select ltrim('    char') from /tab_name  --- default olarag charin solundaki boshlugu silir.
+select ltrim('000char','0') from /tab_name  --- soldaki 0 lari silir.
+select ltrim('123123char123','123') from /tab_name  --- soldaki reqemleri silir.
+select ltrim('6782char','0123456789') from /tab_name  --- soldaki butun reqemleri silmek demekdi.
+
+* charin etrafindaki boshluglari silir.
+
+8) Yuvarlaqlashdirma funksiyalari:
+   ceil(57.4) = 58 - ne olur olsun tam varsa, yuxari yuvarlaqlashdirir.
+   floor(57.9)= 57 - ne olur olsun tam varsa, ashagi yuvarlaqlashdirir.
+   trunc(57.9)= 57 - ne olur olsun tam varsa, ashagi yuvarlaqlashdirir.
+   trunc(59.672,'2') - vergulden sonra 2 ededi goturur amma yuvarlaqlashdirmir,oldugu kimi goturur.ededin ozunu goturur
+   round(52.5)= 53 - riyaziyyatdaki kimi yuvarlaqlashdirir.
+   round(52.456,'2') - vergulden sonra 2 ededi goturur,ve sonuncunu yuvarlaqlashdirir.
+
+9) remainder(), mod(): - bolme funksiyalaridir.
+select mod(14,3) from dual = 2. -- qaligi qaytarir.
+*remainder(23,5) from dual = -2  -- hesablanma qaydasi: 5 20 ve 25 e bolunur,23e en yaxin 25dir,23-25= -2;
+*praktikada remainder() istifade olunmur, amma quizde sorushulur.
+
+
+10) round(date),trunc(date) - tarixi yuvarlaqlashdirmaq. MM-ay;DD-gun,YYYY-il
+select round(sysdate,'MM') from dual; cari tarixi, yaxin vaxta gore gore yuvarlaqlashdirir.
+select trunc(sysdate,'yyyy') from dual; trunc evvele qayidir. yyyy-il evveline,MM-ay evveline.
+
+11) next_day() - novbeti hefte gununun tarixini gosterir.
+select next_day(sysdate,'wednesday') from dual; novbeti gelen 3cu gunun tarixini gosterir.
+
+12) last_day() - ayin son gunu.
+select last_day(/date_col) from /tab_name; -- ayliq hesabatlar ucun her tarixin aydaki son gununu gosterir.
+
+13) add_months() - ay i deyismek.
+select add_months(sysdate,6) from dual; 6 ay sonraki tarixi gosterir. -6 ise 6 ay geri gedir.
+
+14) abs() - menfini musbete cevirir.
+ders 7---------------------------------------------------------------------------------------------------
+
+15) months_between() - iki ay arasindaki muddeti gosterir
+ 
+16) numtoyminterval(24,'month') - num to year,month interval --- verilen reqemin nece il ve ay oldugunu gosterir.
+    numtodsinterval(46, 'hour') - num to day,second interval --- verilen reqemin nece gun ve saniye oldugunu gosterir.
+
+17) stddev(/salary) - standart deviation --- yayinmani tapmaq.
+
+(1,2,4,14)  --- hesablanma qaydasi:
+1)avg tapmaq,20/4=5;
+2)her ededden - avg cixmaq.
+3)onlarin kvadratlarini toplamaq.
+4)hemin cemi ededlerin sayi-1 e bolmek
+5)kok tapmaq.
+----------------------------------------------------------------
+Aggregate Functions:  /*Group Functions
+
+1) sum() - toplayir.
+2) avg() - ededi orta tapir.
+3) count()-col daki olan melumatlarin butun sayini gosterir.
+4) max() - en boyuk olani, min() - kicik olani gosterir.
+
+----------------------------------------------------------------
+CONVERSION Functions: 1)to_char, 2)to_number, 3)to_date
+select to_char(123,'$999.99') from dual -- reqemi $123.00 a cevirir;
+select to_char(sysdate,'dd-mm-yyy hh-mm-ss') -- tarixin formatini istediyin shekilde char edir.
+select to_char(sysdate,'month') -- tarixin hansi ay oldugunu char olaraq gaytarir.
+select to_char(sysdate,'day') -- heftenin hansi gun oldugunu char olaraq gaytarir.
+
+select to_date('2020-08-11','yyyy-mm-dd') - ters yazilmish tarixi duzgun formata cevirib qaytarir.(2ci param 1in izahidi)
+
+select CAST(/col_name as nvarchar2(30)) from /tab_name; coldaki butun datalari char edir.
+select EXTRACT(/month from /date_col) frob /tab_name; coldaki verilenin necenci oldugunu REQEM olaraq qaytarir.
+
+ders 8-----------------------------------------------------------------------------------
+1) Case When Then funcion
+   select CASE WHEN /col_name =/like/in ~~~ THEN 'something' when ~~~ then 'something... ' END /case_name from /tab;
+   select CASE WHEN ~~~~ THEN 'something...' ELSE 'other...' END/case_name from /tab_name;
+**eger her defe eyni colda axtarilirsa o zaman /col_name 1 defe yazilsa da olar.
+**CASE WHEN den sonra AND ler yazmaq mumkundur.
+
+2) Decode function  (case ile eynidir, amma kohnedir.)
+   select decode(/colname,if,'return') --- burada /colname ve if REQUIRED,return - optionaldir.
+
+3) nvl() --- coldaki null lari evez edir.
+   select nvl(/col_name,0) ---- coldaki butun null lari 0 ile evez edir.
+**Ededi ortani tapdiqda avg() funksiyasi nullari saymadigi ucun duz hesablamaya bilir,
+buna gore nvl() ile nullari 0 ile evez edib sonra avg tapmaq lazimdir.
+
+4) nullif() --- beraberliyi yoxlayir.(meselen columnlarin beraberliyini).
+   select nullif(5,7) from dual: --- eger beraberdirse null qaytarir, deilse 1 ci ededi qaytarir.(5)
+
+5) nvl2()
+   select nvl2(string,'null deyil','null dur') from /tab_name; --- eger 1 ci gonderilen null deyilse 2ci parametri,
+nulldursa 3 cu parametri qaytarir. 
+-------------------------------------------------------------
+/Analytic function
+6) lag()yuxardan asagi , lead()asagidan yuxari -- coldaki data ni surushdurur.
+   select lag(/col_name,n) over (order by ) from loan - coldaki datani n qeder asagi surusdurur. n - default 1 dir. Optional dir.
+   select lead(/col_name,n) over (order by ) from loan - coldaki datani n qeder asagidan yuxari surusdurur.
+
+**Praktikada Lag evvelki gune baxmaq ucun istifade olunur , Lead ise sonraki gune.
+
+10) *TOP neçe se cixart dese rankdan istifade olunur.
+    select rank() over (order by /col_name desc) as /new_col_name from /tab_name;
+    *dense_rank siraladiqda reqem ardicilligi ile siralayir.
+
+11) row_number()
+   -select filial_code,amount_azn,row_number() over (order by amount_azn desc) from loan;
+
+12) **nth_value() :
+
+--select distinct dept_id,nth_value(salary,2) over (partition by dept_id order by salary desc
+range between unbounded preceding and unbounded following) as second_highest
+from employees where dept_id in (10,20) order by dept_id;
+
+*Distinct - dublikatlari cixarmamasi ucun yazilir.
+*Rank ile nth_value ferqi odur ki : 
+-nth_value group by edib her ceside gore yalniz 1 ni getirir(mes.en cox maash alan 2ci)
+-rank ise bir coxunu qaytara bilir. (mes. en cox maash alan ilk 2 neferi)
+ders 9--------------------------------------------------------------------------------------------
+GROUP BY :
+
+select func(/col_name) from /tab_name GROUP BY /col_name2 -- col2-deki ferqli datalara gore qruplashdirir.
+
+** Group by a bir nece column yazmaq mumkundur.
+** selectde yazilan col_name mutleg GROUP BY da da yazilmalidir. ama eksi OPTIONAL dir.
+** Group By - a ALIAS gondermek olmadigindan butun selecti copy edib yeniden select fromda yazmaq lazimdir.
+
+** RANK a group by vermek ucun evezinde PARTITION BY yazilir ve Order by dan evvel yazilir.
+
+Rollup & Cube Group by;
+
+Partition by ve Group by fergi:
+1)Group by row sayini azaldir,Partition azaltmir, 1 elave column artirir.
+2)Group by yalniz qruplashdirilan columnlari istifadeye icaze verir, Partition columnlari qisitlamir.
+3)Group by neticesine sherti Where yerine Having ile vermeliyik, Partitionda yaranan col`u Where de istifade ede bilerik.
+---------------------------------------------------------------------------
+HAVING:
+
+Having = Where kimi eynidir, ferqi odur ki, where adi column lara tetbiq olunur, HAVING ise funksiyalarla teyin olunmush
+columnlara aid edilir. Meselen:
+
+select avg(/col_name) from /tab_name group by /col_name2 HAVING SUM(/col_name3 >,=,< 231);
+
+**hem Where, hemde Having biryerde istifade oluna biler, Where /tab_name den sonra, Having group_by dan sonra.
+
+----------------------------------------------------
+*Praktikada lazim olmayan ama interviewda sorushulan gic gic suallar.
+
+*coalesce(e1,e2) -------  ilk nul olmayan ededi qaytarir.
+*replace('000123','0','*') -- hansisa simvolu bashga simvol ile evez edir.
+*ascii('herf') from dual; ---- her bir herfin reqem qarshiligini gosterir.
+*chr('reqem') from dual; ---- her bir reqemin herf qarshiligini gosterir.(ascii tersi)
+*dump('text') from dual; ---- textin type-ni(96),uzunlugunu ve herflerin ascii - ni gosterir.
+*translate('1text23','123','456') from dual = '4tech56'; her simvolu tapib yerine evez edir.
+(bu aze shriftleri deishmekde komek olur)
+
+*vsize('tech') from dual --- data nin db da nece byte yer tutdugunu gosterir.
+----------------------------------------------------
+UNIQUE id tapmaq ucun distinct, ve ya select col, group by col.
+DUBLIKAT id lerin tapilmasi:
+
+**butun column adlari ve count(*) select olunur ve butun columnlara gore group by edilir ve Having count(*) > 1;
+
+SILINMESI:
+select max(rowid) from /tab_name group by butun column adlari;
+delete from /tab where ROWID not in (yuxarinin kopyasi).--------------------------------------- IN SQL SERVER :WITH cte AS (    SELECT         contact_id,         first_name,         last_name,         email,         ROW_NUMBER() OVER (            PARTITION BY                 first_name,                 last_name,                 email            ORDER BY                 first_name,                 last_name,                 email        ) row_num     FROM         contacts)DELETE FROM cteWHERE row_num > 1;
+----------------------------------------------------
+median() --- orta ededi tapir. AVG den ferqi odur ki , bu ededleri evvel sort edir ve ortadakini goturur. Meselen :
+7,15,3,5,4 ---- 3,4,5,7,14 --- ve buradan 5i goturur. Eger cut ededlerdirse ortadakilari toplayib goturur.Meselen :
+6,12,4,3  -----3,4,6,12 ve buradan 4+6 = 10.
+
+ders 10---------------------------------------------------------------------------------
+Joins:
+
+1) equijoins (hemde inner)     --- mutleq eyni adda column olmalidir.
+2) non equijoins(hemde inner)  --- less than or greater_than <,> olan joinler.
+3) natural join  --- butun joinler
+4) self join     --- yazilisi JOIN ile olur saginda ve solunda eyni table olur.
+5) inner join	 --- ortaq olanlari goturur, datalari itirir buna gore daha cox outer..
+6) outer join	 --- left, right, full olaraq 3 yere bolunur.
+
+** Inner keyword u Optionaldir, default budur.
+** outer keyword u Optionaldir, default Left Joindir.
+
+daha cox Left Joinden istifade olunur.
+
+1) select a.* , b.* from /tab1 a Inner Join /tab2 b on a.id = b.id;
+
+2) EquiJoins yazilishi -- column adlari eyni olmalidi:
+select /t1.col, /t2.col,/t1.col2 from /tab1 Left Join /tab2 using(/same_col_name);
+
+3) select a.contract_id,a.act_date,b.code from loan_contract a, currency b where a.currency_id=b.code; --- inner join.
+
+4) select a.*,b.*  from loan_contract a,currency b where a.currency_id(+)=b.code; ---- left join
+   select a.*,b.*  from loan_contract a,currency b where a.currency_id=b.code(+); ---- right join
+
+** eyni adda column varsa Equijoin dir, nese bir muqayise varsa Non-Equijoindir.
+
+5) select * from /tab1 join /tab2 on tab1.col_name > tab2.col_name  --- Non-equijoin.
+
+***Musahibe:
+--Eger joinler arasinda WHERE yazilibsa bu INNER JOIN sayilir(hansi joinle birleshirse ferqi yoxdur)
+  ,eger sondadirsa bu zaman hansi joinle birleshibse hemin joindir.
+
+ders 11-----------------------------------------------------------------------------------------
+CTAS 
+create table /new_tab as select * from ......
+
+REGULAR EXPRESSION - regexp   --------  https://www.techonthenet.com/oracle/functions/regexp_substr.php
+like,substr,instr,replace,count  -- 5 novu var.
+
+select * from /tab where regexp_like(/col_name,'Aya(n|d|e)') -- sonu n,d ya e ile bitsin
+select * from /tab where regexp_like(/col_name,'^A(*)d$')    -- A ile baslayib, d ile biten
+select * from /tab where regexp_like(/col_name,'^A|^F(*)')   -- A ve ya F ile baslayan
+select * from /tab where regexp_like(/col_name,'d{2}|t{3}')  -- icinde 2 eded d ve ya 3 eded t olan(qosha)
+select * from /tab where regexp_like(/col_name,'[a-h]')   -- a ve h araliginda olan.
+
+select regexp_substr('Structed Query Language','[[:alpha:]]+',1,3) as /my_regexp from dual; -- burada:
+1 = necenci herfden baslasin,
+3 = 1ci herf olan soz daxil, sonraki necenci sozu gotursun
++ = concat edir, + olmasa, 3 = 1ci herfden sonraki 3 cu herfi qaytarir.
+
+**Cumlenin sozlerini bolub setr-setr yazmaq ucun :
+select regexp_substr('Structed Query Language','[[:alpha:]]+',1,LEVEL) as /my_reg from dual CONNECT BY
+LEVEL <= REGEXP_COUNT('Structed Query Language', ' ' )+1 ; --- cumledeki boshluglarin sayi + 1 = cumlede nece soz olmagi.
+
+** Bash herfi evez etmek:
+select regexp_replace(/col_name, '^\S','new symbol') from /tab --- Sozlerin(\S) ilk herfinin(^) evezine yeni simvol evez edir.
+select regexp_replace(/col_name, '^\S*','new symbol') from /tab --- Cumlenin ilk(^) sozunun(\S) hamisini(*) yeni sozle evez edir.
+
+** Reqemleri evez etmek,gizletmek
+select regexp_replace('Structed 2 Query 10 Language','\d','*') from dual --- tekliy reqemleri * ile evez edir.
+select regexp_replace('Structed 2 Query 10 Language','(\d)(\d)','*') from dual -- onluq reqemleri * ile evez edir.
+select regexp_replace('Azerbaycan','a|e','*',) from dual; -- herfi evez edir.
+
+**
+select regexp_replace('Azerbaycan','(.)','\1 ',) from dual; --- Herfler arasina Boshluq atir.
+select regexp_replace('Structed Query Language',' ','') from dual  -- sozler arasindaki boshlugu silir.
+
+**
+select regexp_instr('Anderson','a|e|o') from dual (result = 4) -- axtarilanlardan ilk tapdiginin indexini deyir.
+
+**
+select regexp_count('Anderson','a|e|o') from dual (result = 2) -- axtardiqlarina toplam nece defe rast gelir.
+select regexp_count('Anderseran','a',1,'i') from dual; (result = 2) -- 1 ciden baslayib nece A oldugunu axtarir. i = hem kicik,boyuk.
+
+ders 12---------------------------------------------------------------------------------------------------------------
+
+Listagg()
+
+1)select listagg(/col_name) from /tab ---- coldaki butun setrleri 1 setre yigir.
+2)select listagg(/col_name,',') from /tab ---- 1 setre yigir ve arasina istediyin isareni elave edir.
+3)select listagg(/col_name,','/') within group (order by /col2 asc/desc) from /tab -- 2 ci colun siralamasina gore duzur.(OrderBy)
+4)select listagg(/col_name,','/') from /tab Group BY /col2 -- 2cu cola gore qruplashdirib rowlara yigir.(GroupBy)
+5)listagg(/col_name,',/') within group (order by /col2 asc/desc) from /tab Group BY /col3 -- 3cu cola gore qruplashdirib,
+2ci col a gore siralayib  eyni rowlara yigir. (Order By + Group by)
+
+** Group by olmasa Listagg yazmaq menasizdir.
+
+Subquery() -- kodun autolashdirilmasi. Novleri :
+1) single row 
+2) multiple row (in)   --- * En cox istifade olunan 2 novu bunlardir.
+3) multiple column -- bir column a yox 2 columa tetbiq olunursa multiple column dur.
+4) corralated subquery -- ** standalone deyil. morterizenin icindeki kod run olunmur.
+5) scalar  - 1 row 1 column (hemde single row sayilir).
+
+*Single row:
+1)--select * from loan where amount_azn > (select avg(amount_azn) from loan where currency_id = 944); 
+*Multiple Row
+2)--select * from loan where currency_id in (select id from currency); -- Inner joine beraber yazilisdir.
+
+**Multiple Rowdaki in ile eyni neticeni gosteren nedir? : Inner Join.(Musahibe).
+**Select icinde select yazdiqda bu Slow Query adlanir. Query Nested Inside Another Query Slow Query.
+
+Istifade yeri:
+1) update: set ve where hissesinde
+2) delete: where hissesinde
+3) insert: select hissesinde
+4) select : column ve where hissesinde
+
+*All,some,any. 
+--select * from loan where amount_azn >= all(select mebleg from currency group by currency_id);
+ bu koddaki erroru aradan qaldirir, butun datalara gore bir bir yoxlayir.
+
+
+ders 13 -----------------------------------------------------------------------
+
+With, Exists
+
+with - adlandirilmish subquery blokudur. 1 defe teyin olunur, selectde ve muxtelif yerlerde reference alina bilir.
+*selectden evvel teyin olunmalidir.
+**with database de saxlanmir.
+
+1)--with /with_name as 
+(
+  select,joinler
+) 
+select * from /with_name ;  -------- *hamisi bir transaction icinde yazilir.
+
+ikinci with: SECOND AS() yazilir.
+
+** inLine view nedir ? ---- bir kod icinde yazilan morterizedeki selectler.(select * from) 
+** icerideki morterize - CHILD, coldeki kod ise PARENT adlanir.
+--------------------------------------
+Exists --- = SemiJoin (diger adi)
+
+--select * from loan a where exists (select * from currency b where a.currency_id = b.id); -- Inner joinle eyni neticeni verir.
+--select * from loan a where not exists (select * from currency b where a.currency_id = b.id); - ortaq olmayanlari cixarir.
+
+** Inner Join table lari birleshdirir, Exists ortaq olanlari gosterir amma table lari birleshdirmir.
+
+---------------------------------------
+
+1)Sign() - funksiyasi: 1, -1 , 0 qaytarir. abs() ile eynidir.
+
+--select sign(5) from dual -- result = 1,
+	       menfidrse -- result = -1,
+	       0 dirsa   -- result = 0.
+
+2)bitand(),exp() ---- ??
+
+3)log(3,9) --- = 2;
+
+4)empty_blob() ---  table da yalniz shekili silmek istenirse, update ile set /photo_col = empty_blob() etmekle silmek olar.
+*null vaxt aparacaq.
+
+5)userenv('language') from dual -- yazi dilini gosterir.
+  userenv('terminal') from dual -- exb ni gosterir. Kompa qoshulmaq ucun lazim olan kodu. Banklarda IT terefinden verilir.
+
+6)**lock table /tab_name in share mode wait;  --- ??
+
+ders 14------------------------------------------------------------------------------------------
+
+Index --- select leri daha suretli etmek ucundur. (Kitab mundericati)
+
+--create index /index_name on /tab_name(/col_name)
+
+*Esasen hansi column daha cox where de istifade olunursa daha cox ona index yaradilir.
+
+Index yaranmasinin 2 novu var :
+1) implicit  -- oracle a aiddir. daha suretlidir cunki Unique,Primary aiddir.
+2) explicit  -- oz yaratdigimiz index
+
+Index in 5 novu var:
+1)unique
+2)non unique
+3)b-tree (default) hecne yazmadan yaranan index b-tree index adlanir.
+4)bitmap -- distinct etdikde daha az row qayidan columnlara tetbiq etmek olar o zaman daha da suretli isleyir.
+  numune(gender col) --- Bitmap indexes can not be unique;
+5)function based - Index yaradilan zaman col-a function verilir. --create index /index_name on /tab(UPPER(/col))
+
+*Indexi unique yaratmaq ucun: 
+-- create unique index /index_name on /tab_name(/col_name)
+
+*Index Select`i suretlendirir, Insert,Update,Delete ` i zeyifledir.
+*<,>,== isharelerinden Selectde istifade olunursa index onu suretlendirir. != isharesine ise tesir ede bilmir.
+*Like '%s' evvelde olduqda index selecti suretlendirir, 's%' sonda olduqda index tesir etmir.
+
+
+select * from user_indexes --- oracle in oz table i dir indexler gosterir.
+select * from user_ind_columns -- hansi table`a, hansi column`a hansi index verdiyini gosterir.
+
+*Index i 1den artiq col-a gore yaratmaq mumkundur. (Murekkeb index)
+--create index /index_name on /tab_name(/col1,/col2)
+
+*Index i her column ucun ayri yaratmaq yaxshidir. 2 colum`a gore yaradilib yalniz 1ne gore select edilse,
+ eger indexdeki yaradilan collardan tekce 1 cisine gore select edilirse Index yaxshi ishleyecek,
+ eger indexdeki yaradilan collardan tekce 2 cisine gore select edilirse Index demek olarki tesiri olmayacaq.
+*Cunki Sort esas 1 ci col`a gore gedir.
+
+Indexler - Visible ve inVisible olur. Default olaraq yaranan zaman Visible-dir.
+Eger deyishmek istenilirse:
+--alter index /index_name invisible edilir. ve index islemir.
+
+*Index leri alter ederek deyishmek olmur, yalniz visible deishmek olar. Deyishmek ucun drop edib yeniden create etmek lazimdir.
+**Table truncate edende indexlerde silinir. Data siz indexlerin menasi yoxdur.
+*Indexi DROP etdiyimiz zaman bu table i blocklayir ve onun uzerinde DML emeliyyatlari etmek olmur. bunu duzeltmek ucun:
+--DROP INDEX /index_adi ONLINE - yazaraq bu problemi hell etmek olar.--- DML in asili olmadigini bildirir.
+
+*Primary key ve unique ile yaranan indexleri silmek olmur.X
+*Table silindikde index de silinir.
+-------------------------------------------------
+HINT = to see EXPLAIN PLAN; - yaranan problemlere olculere(byte) baxmaq ucun.
+
+--EXPLAIN PLAN FOR select .... (joinler); - ile selecti explain plan -a veririk. baxmaq ucun:
+select * from table(dbms_xplan.display); - yazaraq baxiriq.
+--------------------------------------------------
+TABLE in 3 novu var:
+1)Fact -- joinlerde ilk,solda yazilan table FACT table dir.(emeliyyat table)
+2)Dimension(dictionary) /dic_table, her hansi kodun aciqlamasi yazilir.
+3)Temporary -- Muveqqeti tabledir. Ya commitden sonra yada sessia bitdikden sonra silinir.(-ders17-)
+
+Fact Table:
+1)az atribut (column), cox record(row) olur.
+2)primary key-i foreign key kimi ozunde saxlayir.
+3)sayca az olur.
+4)hem numeric, hemde text datalar olur.
+
+Dimension Table:
+1)cox atribut(column) az record(row).
+2)her birinin oz primary key i olur.
+3)sayca cox olur.
+4)90% datalar text tipinde olur (char,varchar).
+
+--------------------------------------------------
+Constraintlerde Error cixmanin 2 novu :
+1)not deferrable;
+2)deferable:
+  1)initially immediate -- yoxlayir,sehvdirse derhal error verir.
+  2)initially deferred   -- transaction -in yeni, commitin sonunadek gozleyir.
+
+ders 15----------------------------------------------------------------------------------------------
+FOREIGN KEY
+
+Dimension Table:
+create table currency(
+id number(10),
+valyuta nvarchar2(10),
+constraint currency_pk_id primary key(id)
+);
+
+Fact Table(esas):
+create table bank(
+name nvarchar2(50),
+currency_id number(10),
+constraint bank_fk foreign key(currency_id) references currency(id)
+);
+
+*Birinci Dimension table yaradilir ve primary key olmalidir. Dimension table dedikde ozunde Primary Key saxlayan table basa dusulur.
+*Ikinci Fact table yaradilir, foreign key ile Dimension table dan reference alir. Fact table dedikde Foreign Key saxlayan table ...
+---------------------------------------------
+View
+
+create or replace view /view_name as ...
+select (Joinler);
+
+--select * from /view_name ; --- kodu ile teyin edilen view nu getirir.
+
+**Create,View,As - REQUIRED dir, 
+  Or Replace - OPTIONALDIR
+
+*View sadece scriptir,yalniz scripti saxlayir,icinde data yoxdur.Data saxlamir.
+*View table da datalar deyisdikde deyise bilir(updatable) amma MV(Materials View) table i sanki screenshot edir.Goruntusunu saxlayir, 
+ table deyissede MV-daki datalar deyismir. Yeni MV data saxlayir.
+
+**View yaradarken selectde her bir funksiyanin ve ya concatin sonunda ALIAS verilmelidir.
+**View yaradarken /View_name(/col1,/col2,/col3) adinin yaninda collarin adini sirasiyla yazaraq da istediyin birine ALIAS vermek olar.
+
+
+View lara ne zaman Insert,Update,Delete etmek olmaz:
+1)not null
+2)group by
+3)distinct
+4)from da subquery,joinler varsa
+
+ *With Read Only
+ View yaradarken sonunda With Read Only yazsaq bu viewa Select`den bashga Insert,Update,Delete dml emeliyyati tetbiq etmek olmaz.
+
+ **Eger view da Concat emeliyyati varsa bu view-a insert elemek olmaz.
+ **Table da not null cnst olan column view-da yoxdursa bu view a insert etmek olmaz.
+
+
+With Check Option(error cixarir):
+
+View yaradarken sonda With Check Option yazarsaq, yaradilan view ya sonradan insert ederken eger kodda verilen where shertinden kenar
+data oturulurse bu zaman ERROR cixarir. meselen view yaradilarken select from where id = 944 olan View goturulubse, bu viewya
+id-si ferqli row insert etmek olmaz. 
+*Eger With Chechk Option yazilmirsa, bu zaman insert error cixarmayacaq, insert edilen row view da yox table ozunde gorunecek.
+----------------------------------------------
+Visible/Invisible Columns:
+
+table yaradarken creatde colun yanina invisible yazmaqla col gorunmez olur. Meselen : (age number(10) invisible).
+
+Select * from edildikde invisible column gorunmur. Gormek ucun column un adini da yazmaq lazimdir. (select /col from /tab)
+Hemcinin View larda, eger view Select * from-dan goturulmushse, bu zaman colmun adi da yazilsa (/col from /view) gorunmeyecek.
+Cunki table View ya verildikde invisible column gorunecek shekilde verilmeyib.
+--ALTER TABLE /tab_name MODIFY /col_name INVISIBLE/VISIBLE
+*Insert etdikde insert invisible col-u gormeyecek yalniz qalan collara deyer vermek olacaq.
+ Gormesi ucun butun columnlarin adini + visible col adi yazib sonra values ile butun deyerleri vermek lazimdir.
+
+*Viewlar cox istifade edilmedikde ve ya nese bir error problem olduqda uzerinde qirmizi isare(INVALID)yazilir. 
+Invalid view nu ishlek hala getirmek ucun: --alter view /view_name compile. yazaraq View nu refresh edirik.
+
+*View ne zaman invalid olur?
+EGER VIEW-NUN ISTINAD ETDIYI COLUMN TABLE-DAN SILINERSE O VIEW INVALID OLUR.(INTERVIEW)
+
+ders 16-----------------------------------------------------------
+
+Flashback:
+
+--FLASHBACK table /tab_name to before drop;
+
+Flashback etdikde table da:
+Berpa olunur: structur,datalar,indexler,constraintler.
+Berpa olunmur: foreign key,trigger.
+
+select * from user_recyclebin(recyclebin); --- yalniz oz silinenlerini gosterir.
+select * from dba_recyclebin --- sistemde butun db-larda ne silindiklerini gosterir(admin).
+select * from all_recyclebin --- hem senin user hemde sene icaze verilen db daki silinenlerin hamisi.
+
+ALTER SESSION SET RECYCLEBIN = ON / =OFF --- RecycleBin i aktiv / deaktiv edir. 
+
+purge recyclebin -- RecycleBin i temizleyir.
+purge /tab_name  -- Purge olunan table Flashback olunmur. (Shift+Delete).
+
+*Sessiya(connection) bitdikden sonra hec bir flashback geri qayitmir.
+
+*--create restore point /name; -- bir vaxt teyin edir ve flashback ederken to restore point /name...
+ --drop restore point /name;      ...deyerek table in hemin vaxtdaki halini geri qaytarir.
+-----------------------------------------------------
+Synonyms: Table RENAME etmek icazesi olmadiqda istediyin table a bashga ad vermek mumkundur.
+
+create or replace public synonym /sy_name for /dbname./tab_name;
+
+or replace,public - OPTIONAL -dir. 
+Public yazilmasa default olaraq private olacaq.
+
+Yaranan synonym i istenilen kimi isifade etmek mumkundur.(Select,insert,delete) table in ozu kimi, hec bir ferqi yoxdur.
+
+Synonym silmek ucun:
+--drop public synonym /syn_name [force] --- (public yaradilibsa public drop edilmelidir).
+
+Force - optionaldir.Eger yazmasaq bu synonymden asili olan view varsa, bu viewda sonradan error gosterecek.
+		    Yazarsaq, error cixmadan pramoy silecek. Default olaraq Force yazmamaq meslehetdir ki, erroru gorek.
+
+----------------------------------------------------
+Pivot:
+
+syntax:
+select * from
+(select coL1,col2 from /tab)
+pivot(
+aggregate func(col2) for col1 in (val1,val2,val3)  ve ya subquery
+);
+
+example:	-- Oracle Sql
+select * from
+(select interest_rate,amount_azn from loan)
+pivot(
+count(amount_azn)
+for interest_rate in (21,22,23,25,26,27,28,29)
+);
+example : 	-- Sql Serverselect * from (select crg_isim,sth_tutar from satis2020_2021) tPIVOT(sum(sth_tutar) for crg_isim in ([124 Tovuz Qazax],[121 Şimal])) pv
+ders 17------------------------------------------------------------------------------------------------
+
+--select 5 from dual CONNECT BY LEVEL < 11 --- 10 dene 5 yazmaq.
+
+RANDOM:
+select to_date('12-jul-2000','dd-mm-yyyy')+ dbms_random.value(0,30) as mydate,
+'AZ'  ||  round(dbms_random.value(1,100))  ||  dbms_random.string('A',4) as mycode
+from dual
+CONNECT BY LEVEL <101;
+Burada 'A' -- butun elifba demekdir.
+
+
+----------------------------------------
+
+TEMPORARY TABLE:
+muveqqeti table dir. ish gorulub bitdikden sonra oz ozune silinir.
+
+2 Statusu var :
+1)on commit delete -- commit olunan kimi table silinir.
+2)on commit preserve rows --- session biten kimi silinir.
+
+Yaradilma Qaydalari:
+1) adi mutleg ora$ptt_name ile baslamalidir.(eger private yaradilirsa.)(Global olduqda istenilen ad verilir.)
+2) index ve MV can not created on temp table
+3) column a default hansisa value vermek olmaz
+4) private temp table a database link ile qoshulmaq olmur.
+
+
+1)GLOBAL:
+create GLOBAL temporary table /tab_name 
+(id number,name nvarchar2(20)) 
+ON COMMIT PRESERVE ROWS 	 ---  Sessiyadan sonra data silinir, table qalir.
+ON COMMIT DELETE   ROWS    	 ---  Commitden  sonra data silinir, table qalir.
+
+2)PRIVATE:
+create PRIVATE temporary table *ora$ptt_my_tab*
+(id number,name nvarchar2(20)) 
+ON COMMIT PRESERVE DEFINITION	 ---  Sessiyadan sonra table silinir. 
+ON COMMIT DROP     DEFINITION	 ---  Commitden  sonra table silinir.
+-------------------------------------------------
+
+Set Operatorlari:
+1)union --- dublikat value`lari goturmur. tekrar varsa onu 1 defe goturur.
+2)union all  -- dublikat value`lari da goturur.
+daha cox bu 2 si islenir. union all daha suretlidir.
+3)minus  -- A/B yeni ferqliler. Birinde olub o birinde olmayan. Ortaq varsa, union kimi goturur.
+*xususi hallarda problem olduqda problemi tapmagin yolu minusdur.
+4)intersect -- ortaq olanlari goturur.
+
+Syntax:
+(select 5 from dual
+union all
+select 6 from dual
+union all
+select 7 from dual
+union all
+select 6 from dual)
+intersect/minus
+(select 7 from dual
+union all
+select 4 from dual);
+
+RESULT =  1.  7
+	  2.  4
+
+*Ardicilliq hemishe sira ile icra olunur. Eger morterizeler olsa o zaman
+ayri ayri goturub ortaq olanlari qaytaracaq.
+
+**Eger 2 columna gore selectler intersect olunursa bu zaman her 4 column eyni ortaq olmalidir.
+
+ders 18 ------------------------------------------------------------------------------------------
+
+*how to compare two rows in same table?: Self join + key value id+1 yazilmagidir
+
+select /st.id, 
+/st.name,
+/st.price,
+/st.price-/nd.price Ferq
+from
+product /st join product /nd on st.id = nd.id+1;
+
+
+*Bir table in kopyasini ici bosh halda nece yaratmaq olar:
+CTAS + where:
+--crate table /name as select * from loan where (her hansi false qaytaracaq bir shert ola biler.) (1=2);(id=2131);(2=3) ve s. 
+-----------------------------------------------
+
+Data Dictionary - is a collection of database tables and views. - Avtomatik Oracle terefinden yaradilir.
+
+Data dictionary-de(oracle-in table-larinda) ne saxlanilir.
+1)obyektin adi ve owneri
+2)column adi,tipi ve precision u
+3)constraintler
+4)view,index,sequence ler.
+
+**Meta data - data about data (meselen:944=azn)
+
+data dictionary owneri SYS olan table`lari  gosterir ve full privileges var. || *SYS is owner of the data dictionary.
+------------------------------------------
+select * from v$database; --(all info about database)
+select * from v$instance; --(instance name,host name)
+select * from v$reserved_words;--(kod sozler)
+select * from v$timezone_names;--(tzname, and abbreviation)
+---------------------------------------------
+
+COMMENT:
+
+comment on /object_type /object_name is c1;  -- c1 = aciqlama,commentariya.
+
+--comment  on table  	currency        is  'Dictionary of Currencies';
+--comment  on table  	loan            is  'Fact table that keeps loans';
+--comment  on column 	loan.act_date   is  'Kredit verilme tarixi';
+
+*Commenti silmek, drop etmek olmur. Silmek ucun yeni comment yaradib bosh qeyd etmek lazimdir.
+--comment on table loan is ' ' ;
+
+select * from all_tab_comments;  - butun table commentlerini gosterir
+select * from all_col_comments;  - butun col   commentlerini gosterir
+
+select * from user_tab_comments; - userin table commentlerini gosterir.
+
+*Musahibede butun her sheyi qaytaran deyirse: dictionary.
+select * from dictionary;	 - butun obyektleri ve commentlerini gosterir.
+select * from user_catalog;	 - yalniz userin yaratdigi obyektleri gosterir.
+ 
+ders 19 --------------------------------------------------------------------------------------------
+**Hansi obyektden nece eded oldugunu tapmaq:
+--select table_typle,count(*) from user_catalog group by table_type;
+
+*select * from user_constraints; -- constraintleri gosterir.
+P-primary key,
+R-foreign key,
+U-Unique,
+C-check,
+not null;
+
+*Bir colmun hansi table-da oldugunu tapmaq ucun:
+1.Select * from user_tab_columns.
+2.Select table_name from user_tab_columns where column_name = 'SALARY'.
+
+USER - Yalniz oz database de olanlar
+ALL  - Hem oz + hemde yalniz icaze verilen db da olanlar
+DBA  - Butun database de olanlar(hershey).
+
+**V$DATAFILE=NO JOIN;
+
+*View ne zaman invalid olur?
+EGER VIEW-NUN ISTINAD ETDIYI COLUMN TABLE-DAN SILINERSE O VIEW INVALID OLUR.(INTERVIEW)*
+
+----------------------------------------------
+Grouping Sets.
+
+Bir nece group by`i union all ile birleshdirmek evezine grouping sets ile daha qisa rahat yazmaq olar:
+
+--select sum(amount_azn),currency_id,filial_code from loan
+  GROUP BY
+  GROUPING SETS ( (currency_id,filial_code),  (currency_id),  (filial_code), () ) ;
+
+*() - yalniz sum() a gore tek qruplashdirma demekdir.
+
+GROUPING_ID - group sets olan table da columnlara gore ID yazir.(indexleyir). 
+*Selectde yazilir:
+-- select ...  ,
+   GROUPING_ID(currency_id,filial_code) AS GROUPING  from loan
+   group_by ...
+   grouping sets ...  ;
+----------------------------------
+Generated.(auto sequence/auto incremence)
+
+create table /tab_name (
+id number(10) generated by default as identity,
+name nvarchar(20)
+);
+
+2 novu var:
+1)generated by default as identity - hem manual id vermek olur, verilmese default olarag ozu artirir.
+2)generated always as identity     - yalniz ozu auto id verir, manual yazilsa error cixarir.
+
+Restrictions:
+1)Her table in yalniz 1 identity column`u ola biler.
+2)Identity olan column`un data type i yalniz numeric ola biler.
+3)Identity olan column CTAS ile select olunduqda yeni table da islemir.
+4)Identity olan column`u yaradarken col`a bashga default deyer vermek olmaz/menasizdir.
+5)Shexsiyyetlerin shifrelenmesi ucun guclu alqoritmlerde istifade oluna biler.
+
+ders 20 ---------------------------------------------------------------------------
+Multiple Insert;
+bir query selectden qayidan neticeni table`lara insert etmek ucundur.
+
+1)Bir selectden qayidan eyni neticeni 3 table`a doldurur.(1 ve ya cox table`a da ola biler) :
+insert all
+into /tab1 values (col1,col2)
+into /tab2 values (col1,col2)
+into /tab3 values (col1,col2)
+select * from table; 
+
+/BANK TASK
+2)Bir selectden qayidan neticeni verilen shertlere gore ayri table`lara ayri data doldurur:
+insert all/first -- (default hecne yazmadiqda =  all)
+when /salary > 100 then
+into /tab1 values (col1,col2)
+when /salary < 100 then
+into /tab2 values (col1,col2)
+when /salary = 100 then
+into /tab3 values (col1,col2)
+select /all,/column,/names from table; 
+
+*All butun true lari yerine yetirir, First ise yalniz ilk true ni insert edir, qalanina baxmir.(teacher)
+*All butun shertleri goturur insert edir, First ise bir row 1 shertde odenilibse 2 ci shertde insert etmir.(practice)
+*Insert`lerin birinde error cixarsa, ondan evvelki insert`ler ROLLBACK olaraq geri qayidir. Insert olmur.
+
+*ELSE sherti yazmaq olar amma yalniz sonda:
+--when /salary = 100 then
+  into /tab3 values (col1,col2)
+  ELSE
+  into /tab4 values (col1,col2)
+
+3)Sadece 1 yox 1 nece table`dan qayidan datalari insert all etmek olur. JOIN ile:
+insert all/first -- (default hecne yazmadiqda =  all)
+when /amount_azn between 20000 and 50000 then
+into /tab1 values (currency_id,customer_name,id)
+when /amount_azn < 20000 then
+into /tab2 values (currency_id,customer_name,id)
+when /amount_azn > 50000 then
+into /tab3 values (currency_id,customer_name,id)
+
+select a.currency_id as /currency_id, a.customer_name as /customer_name,b.id as /id
+from 
+(select * from loan) a left join (select * from currency) b on a.currency_id = b.id;
+
+*Burada select edilen column`lara mutleg ALIAS vermek ve values de hemin aliaslari yazib Run etmek lazimdir.
+
+-------------------------------------------
+Virtual Column:
+
+Table yaradarken Column`a dustur vermek.Bunun ucun table yaradarken column yanina AS + dustur yaziriq.
+
+create table /mytab (
+name nvarchar2(20),
+experience number(10),
+salary number(20)
+newsalary as ((experience*20)+salary)
+);
+*Virtual Column`a data type vermekde olar. Default olaraq vermedikde dusturdan qayidan netice nedirse,
+ hemin edede gore data type`i ozu teyin edir.
+*Insert etdikde values`de bu colun deyerine hecne yazilmir.BUNA GORE insertde butun column adlari yazilmalidir.
+
+
+Ustunluyu: Virtual column yaddashda az yer tutur,datani saxlamir, yalniz select etdikde hesablayir. 
+Menfisi: performansi azaldir. her selectde hesablandigi ucun runtime suretini azaldir.
+
+example 2: 
+newsalary as (case when experience > 5 then 'senior'
+		   when experience < 3 then 'junior'
+		   when experience between 3 and 5 then 'middle' 
+		   end);
+
+1)user defined,collection,blob clob tiplerinde ishlene bilmir.
+2)Fact table da olur, temporaryde yox
+3)Bashga virtual columdan istinad ala bilmez
+4)Bashga table columndan istinad ala bilmez
+5)yalniz scalar value(tek deyer) qaytara biler.
+
+ders 21 ----------------------------------------------------------------------------------
+Privileges`in novleri: (icazeler)
+1)system privileges - the ability to perform a particular task in dba -- DDL.
+2)object privileges - DBA obyektler uzerinde.	    meselen: Table.   -- DML
+3)ROLES - a collection of one or more system or object privilages;
+
+1)system privileges=butun create-lar,drop,alter,grant,flachback,create session(log in database);
+
+GRANT<->REVOKE:
+--grant  /privilege to   /username   -- username`e her hansi privilege(icazenin) verilmesi.
+--revoke /privilege from /username   -- username`den her hansi privilege`in alinmasi.
+
+**TABLESPACE - Ayrilmish yaddash sahesidir:
+--grant unlimited tablespace to /username.
+
+DBA terefinden user yaradilma addimlari:
+1.connect system;   				--- admin kimi DB-e girish edilir.
+2.create user /username identified by /password;--- user yaradilir.
+3.grant create session to /username;		--- user`e sessia yaratmaq privilege`i verilir.
+4.grant unlimited tablespace to /username	--- user`e limitsiz table yaddash sahesi yaradilir.
+5.grant create table to /username		--- user`e table yaratmaq privilege`i verilir.
+
+**grant any create table to /username --- user`e DB`in her yerinde table yaratmag privilege`i verilir,
+					  yeni user istenilen userle girib table yarada biler.
+
+
+Constraint,INDEX:
+*User`e create table ve ya alter table privilege`i verilibse bu hemde Constraint yaratmaq imkani sayilir.
+*User`e create table privilege`i verilibse bu hemde INDEX yaratmaq imkani sayilir.
+
+
+*WITH ADMIN/GRANT OPTION:
+--with admin option. 				  -- Grant verilen kodun sonunda bu yazilarsa:
+--grant privilege to /username WITH ADMIN OPTION     granti veren admin, ozunun butun privilege`lerini de verir.
+
+*--grant all privilages on /object_name to /username - butun privilige`leri vermek.(prvg-optionaldir).
+*--revoke all on /object_name from /username 	     - butun privilige`leri geri alir.
+
+**Privilages verilen table silinerse bu zaman privileges de silinir, table yaradanda yeniden prvgs yaratmaq lazimdir.
+  flashback olunarsa bu zaman hem table hemde privileges de geri qayidir.
+
+Data Dictionary de butun privilige`lara baxmaq ucun:
+--select * from user_sys_privs; --- admin terefinden baxilir userlere verilen prvg-e.
+--select * from dba_sys_privs; 
+--select * from user_tab_privs; -- table`lara verilen prvg`lara baxilir.
+--select * from dba_tab_privs;
+
+
+2)Object privileges - yalniz obyekt uzerindeki DML emrlerine verilen icazelerdir.
+
+--grant /select, /insert on /object_name to username;
+
+
+3) ROLES: bir nece privilige`i biryerde usere vermek ucun istifade olunur.
+   Privilige`ler evvel role`a verilir:
+
+1.create role /role_name;
+2.grant all priviliges on /object_name to /role_name;
+3.grant /role_name to /username;
+4.revoke /role_name from /username;
+
+*A Role object doesn`t represent privileges in and of itself. It is merely a collection of zero or more privilage.
+
+PL/SQL-----------------------------------------------------
+*grant execute  /package_name to /username;
+*revoke execute /package_name from /username;
+-------------------------------------------------------------------------------------------------------------------------
+Merge:
+
+Syntax:
+merge into table
+using table || subquery --required
+on condition 		--required
+when matched then update set /col_name = 'tekrar' where condition
+--delete where condition
+when not matched then insert (col1,col2) values (exp1,exp2) where condition;
+
+*merge den sonra mutleg table olmalidir,usingden sonra table/subquery/view dan biri ola biler.
+**Conditionda olan column hec vaxt update de yazila bilmez. X
+
+example(ders g3_pl3.2):
+merge into wwa_invoices wwa
+ using ontario_orders ont
+ on (wwa.cust_po=ont.po_num)
+ when matched then 
+ update set wwa.notes=ont.sales_rep
+ when not matched then insert (wwa.inv_id,wwa.cust_po,wwa.inv_date,wwa.notes)
+ values (5,ont.po_num,sysdate,ont.sales_rep)
+where substr(ont.po_num,1,3)<>'nbc' ;
